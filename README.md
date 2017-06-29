@@ -1,13 +1,13 @@
-#German Car Production
+# German Car Production
 
-#MakeoverMonday Week26
+## #MakeoverMonday Week26
 
 Published at:
-http://rpubs.com/mrYeti1/germanCarProduction
-http://rpubs.com/mrYeti1/germanCarProductionArrows
-http://rpubs.com/mrYeti1/germanCarProductionV3
+* http://rpubs.com/mrYeti1/germanCarProduction
+* http://rpubs.com/mrYeti1/germanCarProductionArrows
+* http://rpubs.com/mrYeti1/germanCarProductionV3
 
-
+---
 German Passenger Car production shows large variance between months of
 the year.
 
