@@ -1,0 +1,63 @@
+---
+  title: German Car Production
+  theme: journal
+  output: md_document
+
+---
+
+```{r, echo=F, message=F}
+library(scales)
+library(dplyr)
+library(ggplot2)
+library(readxl)
+
+monthLevels <- c("August", "September", "October", "November", "December","January", "February", "March", "April", "May", "June", "July")
+
+germanCarProd <- read_excel("~/MakeoverMonday/GermanCars/GermanCarProductionAndExportsByMonth.xlsx") %>% 
+  mutate(
+    month = factor(months(Date), monthLevels)
+  )
+
+yearDiff <- germanCarProd %>% filter(`Car Type` == "Passenger cars") %>% filter(`Export or Production` == "Production") %>% 
+  group_by(
+    year = strftime(Date, format="%Y")
+  ) %>%
+  mutate(
+    yearAvg = quantile(`Number of cars`, 0.5),
+    #yearAvg = mean(`Number of cars`),
+    monthDiff = `Number of cars` - yearAvg,
+    monthDiffPerc = monthDiff / yearAvg *100
+  )
+
+largestDiff <- yearDiff %>% arrange(-monthDiffPerc) %>% head(1) %>% select(year, month, monthDiffPerc, numCars=`Number of cars`)
+largestNegDiff <- yearDiff %>% arrange(monthDiffPerc) %>% head(1) %>% select(year, month, monthDiffPerc, numCars=`Number of cars`)
+```
+German Passenger Car production shows large variance between months of the year. 
+
+`r paste0(largestDiff$month, " ", largestDiff$year)` produced `r round(largestDiff$monthDiffPerc)`% more cars than the yearly average to produce `r comma(largestDiff$numCars)`. 
+
+While `r comma(largestNegDiff$numCars)` cars in `r paste0(largestNegDiff$month, " ", largestNegDiff$year)` was `r round(largestNegDiff$monthDiffPerc)`% the production of the average in that year.
+
+```{r, echo=F, fig.width=10}
+
+ggplot(yearDiff, aes(x=Date, ymin=yearAvg, y=yearAvg, ymax=yearAvg+monthDiff, fill=as.logical(monthDiff > 0))) + 
+  geom_crossbar(color=NA) + #geom_point(aes(y=yearAvg, shape=24+as.numeric(monthDiff < 0)), size=1.5, stroke=0.5) +
+  scale_y_continuous(labels=comma) + scale_x_datetime() + xlab("Year") + ylab("Number of passenger cars produced") +
+  theme(legend.position="none", axis.text.x = element_text(angle = 60, hjust=1)) + expand_limits(y=0) + ggtitle("Monthly production versus the yearly median") + scale_shape_identity()
+```
+
+```{r, echo=F}
+yearSummary <- yearDiff %>% group_by(month) %>% summarise( neg = sum(monthDiff < 0), pos= sum(monthDiff > 0), total=pos-neg) 
+
+lowestThree <- yearSummary %>% arrange(total) %>% head(3)
+highestThree <- yearSummary %>% arrange(-total)%>% head(3)
+
+```
+
+Breaking this out each month shows `r paste(lowestThree$month, collapse=", ")` are predominently below the yearly average. `r paste(highestThree$month, collapse=", ")` are more productive.
+
+```{r, echo=F, fig.width=10}
+ggplot(yearDiff, aes(x=as.POSIXct(year, format="%Y"), ymin=0, y=0, ymax=monthDiffPerc, fill=as.logical(monthDiff > 0))) + 
+  geom_crossbar(color=NA) + scale_y_continuous(labels=comma) + scale_x_datetime() + xlab("Year") + ylab("% difference to yearly median") + #geom_point(aes(y=yearAvg, shape=24+as.numeric(monthDiff < 0)), size=1.5, stroke=0.5) +
+  theme(legend.position="none", axis.text.x = element_text(angle = 60, hjust=1)) + expand_limits(y=0) + ggtitle("Monthly percentage difference from yearly median") + facet_grid(~month) + scale_shape_identity() 
+```
